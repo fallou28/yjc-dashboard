@@ -1,0 +1,9 @@
+streamlit>=1.28.0
+pandas>=2.0.0
+plotly>=5.14.0
+gspread>=5.10.0
+gspread-dataframe>=3.2.1
+google-auth-oauthlib>=1.0.0
+google-auth-httplib2>=0.1.1
+google-auth>=2.20.0
+pyarrow>=12.0.0
