@@ -2,17 +2,13 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
-from google.oauth2.service_account import Credentials
-from google.colab import auth
 import gspread
-from gspread_dataframe import get_as_dataframe, set_with_dataframe
+from google.oauth2.service_account import Credentials
 import warnings
 warnings.filterwarnings('ignore')
 
-# Configuration de la page
 st.set_page_config(page_title="Dashboard YJC", layout="wide", initial_sidebar_state="expanded")
 
-# Palette de couleurs CJS
 COLOR_PALETTE = {
     'primary': '#1f77b4',
     'success': '#2ca02c',
@@ -21,7 +17,6 @@ COLOR_PALETTE = {
     'info': '#17a2b8'
 }
 
-# ============== AUTHENTIFICATION GOOGLE SHEETS ==============
 @st.cache_resource
 def init_gsheet():
     """Initialise la connexion au Google Sheet"""
