@@ -272,6 +272,14 @@ REGION_COORDS = {
     "Matam": (15.6559, -13.2548),
 }
 
+
+GEO_B64 = "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"
+
+
+def load_geo():
+    import base64, json, zlib
+    return json.loads(zlib.decompress(base64.b64decode(GEO_B64)).decode())
+
 # ============================================================
 #  INTERFACE
 # ============================================================
@@ -625,9 +633,25 @@ with tab2:
             st.info("Ce niveau de lecture n'existe pas dans les feuilles régionales.")
 
 # ============ 3. CARTE ============
+GEO = load_geo()
+REG_NAME = {"Tambacounda": "Tambacounda", "Dakar": "Dakar", "Kedougou": "Kédougou",
+            "Sedhiou": "Sédhiou", "Matam": "Matam"}
+C_LAND_OUT, C_LAND_SN, C_OCEAN, C_RIVER, C_BORDER = "#E4E1D8", "#F7F5EF", "#D6E6F0", "#7FA9C9", "#FFFFFF"
+
+
+def lines_xy(geom):
+    xs, ys = [], []
+    parts = [geom["coordinates"]] if geom["type"] == "LineString" else geom["coordinates"]
+    for part in parts:
+        for x, y in part:
+            xs.append(x); ys.append(y)
+        xs.append(None); ys.append(None)
+    return xs, ys
+
+
 with tab3:
-    st.markdown("Localisation des 5 régions du projet. La couleur et la taille du point indiquent le taux "
-                "de réalisation de l'indicateur choisi ; les détails apparaissent au survol.")
+    st.markdown("Taux de réalisation de l'indicateur choisi dans les 5 régions d'intervention. "
+                "Survole une région pour afficher les valeurs.")
     cand = []
     for gm in [r for r in RECS if r["sheet"] == "Global" and r["level"] == 0]:
         if not show_hidden and gm["hidden"]:
@@ -640,37 +664,83 @@ with tab3:
         mk = pick_box("Indicateur", cand, main_label, "map_pick")
         gm = ref_mains[mk]
         idx = {(r["sheet"], r["key"]): r for r in VIS}
-        lats, lons, sizes, colors, texts, names = [], [], [], [], [], []
-        for s in REGIONS:
+        fig = go.Figure()
+
+        def rings(geom):
+            polys = [geom["coordinates"]] if geom["type"] == "Polygon" else geom["coordinates"]
+            xs, ys = [], []
+            for poly in polys:
+                for x, y in poly[0]:
+                    xs.append(x); ys.append(y)
+                xs.append(None); ys.append(None)
+            return xs, ys
+
+        def area(fill, line, width, geom, hover=None):
+            xs, ys = rings(geom)
+            fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", fill="toself", fillcolor=fill,
+                                     line=dict(color=line, width=width), showlegend=False,
+                                     hoveron="fills" if hover else None,
+                                     hoverinfo="text" if hover else "skip", text=hover or ""))
+
+        for f in GEO["countries"]:
+            if f["id"] != "SEN":
+                area(C_LAND_OUT, "#C9C5B9", 1, f["geometry"])
+        proj = {REG_NAME[s]: s for s in REGIONS}
+        for f in GEO["regions"]:
+            if f["id"] not in proj:
+                area(C_LAND_SN, "#CFCBBF", 0.8, f["geometry"], f"{f['id']} : hors zone d'intervention")
+        for f in GEO["regions"]:
+            if f["id"] in proj:
+                r = idx.get((proj[f["id"]], gm["key"]))
+                t = r["taux"] if r else None
+                colr = status(t)[1] if r else C_NONE
+                hov = (f"<b>{f['id']}</b><br>Atteint : {fmt_v(r, r['atteint'])}<br>Cible : {fmt_v(r, r['cible'])}"
+                       f"<br>Taux : {fmt_pct(t)}<br>{status(t)[0]}") if r else f"<b>{f['id']}</b><br>Non renseigné"
+                area(colr, "#FFFFFF", 2.2, f["geometry"], hov)
+        for rv in GEO["rivers"]:
+            xs, ys = lines_xy(rv["geometry"])
+            fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", line=dict(color=C_RIVER, width=1.8),
+                                     hoverinfo="skip", showlegend=False))
+        cen = {f["id"]: (f["properties"]["lon"], f["properties"]["lat"]) for f in GEO["regions"]}
+        oth = [n for n in cen if n not in proj]
+        fig.add_trace(go.Scatter(x=[cen[n][0] for n in oth], y=[cen[n][1] for n in oth], mode="text",
+                                 text=oth, textfont=dict(size=11, color="#9A958A"), hoverinfo="skip",
+                                 showlegend=False))
+        px_, py_, pt = [], [], []
+        for name, s in proj.items():
             r = idx.get((s, gm["key"]))
-            lat, lon = REGION_COORDS[s]
-            t = r["taux"] if r else None
-            lats.append(lat); lons.append(lon); names.append(REGION_LABELS[s])
-            colors.append((status(t)[1]) if r else C_NONE)
-            sizes.append(24 + (min(t, 1.5) * 30 if t is not None else 0))
-            if r:
-                texts.append(f"<b>{REGION_LABELS[s]}</b><br>Atteint : {fmt_v(r, r['atteint'])}<br>"
-                             f"Cible : {fmt_v(r, r['cible'])}<br>Taux : {fmt_pct(r['taux'])}")
-            else:
-                texts.append(f"<b>{REGION_LABELS[s]}</b><br>Non renseigné")
-        fig = go.Figure(go.Scattergeo(
-            lat=lats, lon=lons, mode="markers+text", text=names, textposition="top center",
-            textfont=dict(size=13, color="#333", family="Public Sans, sans-serif"),
-            marker=dict(size=sizes, color=colors, opacity=0.9, line=dict(width=1, color="white")),
-            hovertext=texts, hoverinfo="text"))
-        fig.update_geos(
-            scope="africa", lataxis_range=[11.8, 16.8], lonaxis_range=[-17.9, -11.2],
-            showcountries=True, countrycolor="#B9C2CC", showsubunits=True,
-            landcolor="#F2F1EC", showocean=True, oceancolor="#DCE8F0",
-            showlakes=False, coastlinecolor="#B9C2CC", framecolor="#D8D8D2", resolution=50)
-        fig.update_layout(margin=dict(l=0, r=0, t=10, b=0), height=520, showlegend=False)
-        st.plotly_chart(fig, width="stretch", config={"displaylogo": False, "scrollZoom": True})
-        st.caption("Fond simplifié avec pays limitrophes pour repère géographique. "
-                   "Positions approximatives des chefs-lieux de région.")
+            lon, lat = (-17.75, 14.95) if name == "Dakar" else cen[name]
+            px_.append(lon); py_.append(lat)
+            pt.append(f"<b>{name}</b><br>{fmt_pct(r['taux']) if r else 'n.d.'}")
+        fig.add_trace(go.Scatter(x=px_, y=py_, mode="text", text=pt, hoverinfo="skip", showlegend=False,
+                                 textfont=dict(size=13, color="#FFFFFF")))
+        fig.data[-1].textfont.color = ["#1B2A41" if n == "Dakar" else "#FFFFFF" for n in proj]
+        fig.add_trace(go.Scatter(x=[-17.44], y=[14.69], mode="markers", showlegend=False,
+                                 marker=dict(symbol="star", size=12, color="#1B2A41", line=dict(color="white", width=1)),
+                                 hovertemplate="Dakar, capitale<extra></extra>"))
+        labs = [("MAURITANIE", -13.8, 16.7), ("MALI", -10.9, 14.6), ("GUINÉE", -12.4, 11.75),
+                ("GUINÉE-BISSAU", -15.1, 11.85), ("GAMBIE", -16.35, 13.62)]
+        fig.add_trace(go.Scatter(x=[l[1] for l in labs], y=[l[2] for l in labs], mode="text", showlegend=False,
+                                 text=[l[0] for l in labs], hoverinfo="skip",
+                                 textfont=dict(size=11, color="#8C877B")))
+        fig.add_trace(go.Scatter(x=[-17.35], y=[13.0], mode="text", hoverinfo="skip", showlegend=False,
+                                 text=["<i>Océan<br>Atlantique</i>"], textfont=dict(size=12, color="#6F93AE")))
+        fig.add_trace(go.Scatter(x=[-14.9], y=[16.25], mode="text", hoverinfo="skip", showlegend=False,
+                                 text=["<i>Fleuve Sénégal</i>"], textfont=dict(size=10, color=C_RIVER)))
+        fig.update_xaxes(visible=False, range=[-18.0, -10.9], fixedrange=True)
+        fig.update_yaxes(visible=False, range=[11.5, 17.0], scaleanchor="x", scaleratio=1.03, fixedrange=True)
+        fig.update_layout(height=620, margin=dict(l=0, r=0, t=0, b=0), showlegend=False,
+                          plot_bgcolor=C_OCEAN, paper_bgcolor=C_OCEAN,
+                          font=dict(family="Public Sans, sans-serif"),
+                          hoverlabel=dict(bgcolor="white", font_size=13, font_color="#1B2A41"))
+        st.plotly_chart(fig, width="stretch", config={"displaylogo": False, "scrollZoom": False})
         st.markdown(f'<div class="yjc-legend"><span style="--c:{C_OK}">Cible atteinte</span>'
                     f'<span style="--c:{C_MID}">En progression</span>'
                     f'<span style="--c:{C_LOW}">À renforcer</span>'
-                    f'<span style="--c:{C_NONE}">Sans donnée</span></div>', unsafe_allow_html=True)
+                    f'<span style="--c:{C_NONE}">Non renseigné</span>'
+                    f'<span style="--c:{C_LAND_SN};outline:1px solid #CFCBBF">Hors zone d\'intervention</span></div>',
+                    unsafe_allow_html=True)
+        st.caption("Limites administratives : Natural Earth (domaine public), 14 régions du Sénégal.")
 
 # ============ 4. ÉVOLUTION TRIMESTRIELLE ============
 with tab4:
@@ -738,17 +808,9 @@ with tab5:
         if m["obs"]:
             st.markdown(f"**Observations :** {html.escape(m['obs'])}")
         d = match_definition(m["label"], DEFS)
-        if d:
-            with st.expander("Définition et méthodologie de collecte", expanded=True):
-                if d["definition"]:
-                    st.markdown(d["definition"])
-                meta_cols = st.columns(3)
-                if d["source"]:
-                    meta_cols[0].markdown(f"**Source des données**\n\n{d['source']}")
-                if d["outil"]:
-                    meta_cols[1].markdown(f"**Outil de collecte**\n\n{d['outil']}")
-                if d["frequence"]:
-                    meta_cols[2].markdown(f"**Fréquence de collecte**\n\n{d['frequence']}")
+        if d and d["definition"]:
+            with st.expander("Définition de l'indicateur", expanded=True):
+                st.markdown(d["definition"])
         lines = [r for r in by_sheet[scope] if r["main_key"] == mk and r["level"] > 0]
         if lines:
             st.markdown("**Désagrégations**")
