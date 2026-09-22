@@ -1,7 +1,6 @@
 # Tableau de bord YJC (Yaakaar Jeunesse Citoyennete) - Consortium Jeunesse Senegal
-# Lit en direct le Google Sheet "Dashboard YJC-Deploye" : feuille Global + 5 feuilles regionales.
-# Regles de lecture : ligne 1 a 3 = en-tetes ; libelle aligne a droite = desagregation ;
-# libelle centre = sous-groupe (ex. Appel a projet 1) ; lignes masquees exclues par defaut.
+# Lit en direct le Google Sheet "Dashboard YJC-Deploye" : feuille Global + 5 feuilles regionales
+# + feuille "Fiche des inicateurs" (definitions). Lignes masquees exclues par defaut.
 
 import re
 import unicodedata
@@ -219,11 +218,11 @@ def api_to_grids(payload):
     return grids, hidden
 
 
-def xlsx_to_grids(path):
+def xlsx_to_grids(path, extra_sheets=()):
     import openpyxl
     wb = openpyxl.load_workbook(path, data_only=True)
     grids, hidden = {}, {}
-    for s in SHEETS:
+    for s in list(SHEETS) + list(extra_sheets):
         ws = wb[s]
         grid = []
         for row in ws.iter_rows(min_row=1, max_row=min(ws.max_row, 300)):
@@ -233,6 +232,45 @@ def xlsx_to_grids(path):
         grids[s] = grid
         hidden[s] = {r - 1 for r, d in ws.row_dimensions.items() if d.hidden}
     return grids, hidden
+
+
+DEF_SHEET = "Fiche des inicateurs"
+
+
+def parse_definitions(grid):
+    out = {}
+    for row in grid[1:]:
+        lab = row[0]["v"] if len(row) > 0 else None
+        if not isinstance(lab, str) or not lab.strip():
+            continue
+        get = lambda i: (row[i]["v"].strip() if i < len(row) and isinstance(row[i]["v"], str) and row[i]["v"].strip() else "")
+        out[norm(lab)] = {
+            "label": lab.strip(), "definition": get(1), "source": get(2),
+            "outil": get(3), "frequence": get(4),
+        }
+    return out
+
+
+def match_definition(label, defs):
+    from difflib import SequenceMatcher
+    n = norm(label)
+    if n in defs:
+        return defs[n]
+    best, score = None, 0.0
+    for k, v in defs.items():
+        sc = SequenceMatcher(None, n, k).ratio()
+        if sc > score:
+            best, score = v, sc
+    return best if score >= 0.82 else None
+
+
+REGION_COORDS = {
+    "Tambacounda": (13.7707, -13.6673),
+    "Dakar": (14.7167, -17.4677),
+    "Kedougou": (12.5556, -12.1746),
+    "Sedhiou": (12.7081, -15.5569),
+    "Matam": (15.6559, -13.2548),
+}
 
 # ============================================================
 #  INTERFACE
@@ -300,7 +338,8 @@ FIELDS = ("sheets(properties(title),data(startRow,startColumn,rowMetadata(hidden
 def load_records():
     local = os.environ.get("YJC_LOCAL_XLSX")
     if local:
-        grids, hidden = xlsx_to_grids(local)
+        grids, hidden = xlsx_to_grids(local, extra_sheets=(DEF_SHEET,))
+        defs = parse_definitions(grids.get(DEF_SHEET, []))
     else:
         from google.oauth2.service_account import Credentials
         from google.auth.transport.requests import AuthorizedSession
@@ -311,15 +350,16 @@ def load_records():
         resp = session.get(
             f"https://sheets.googleapis.com/v4/spreadsheets/{SPREADSHEET_ID}",
             params={"includeGridData": "true", "fields": FIELDS,
-                    "ranges": [f"'{s}'!A1:BD400" for s in SHEETS]},
+                    "ranges": [f"'{s}'!A1:BD400" for s in SHEETS] + [f"'{DEF_SHEET}'!A1:E900"]},
             timeout=60)
         if resp.status_code == 403:
             raise PermissionError("Accès refusé au Google Sheet. Partage-le en lecture avec l'adresse "
                                   "client_email du compte de service.")
         resp.raise_for_status()
         grids, hidden = api_to_grids(resp.json())
+        defs = parse_definitions(grids.get(DEF_SHEET, []))
     recs = parse_all(grids, hidden)
-    return recs, datetime.now(timezone.utc).isoformat()
+    return recs, defs, datetime.now(timezone.utc).isoformat()
 
 
 # ---------- formats ----------
@@ -377,7 +417,7 @@ def plot(fig, h=None):
 
 # ---------- données ----------
 try:
-    RECS, LOADED_AT = load_records()
+    RECS, DEFS, LOADED_AT = load_records()
 except Exception as e:
     st.error(f"Impossible de lire le Google Sheet : {e}")
     st.info("Vérifie les secrets Streamlit (bloc [google_credentials]) et le partage du Sheet avec le compte de service.")
@@ -433,8 +473,8 @@ st.markdown(f"""<div class="yjc-head"><h1>Yaakaar Jeunesse Citoyenneté</h1>
 <p>Suivi des indicateurs du projet, périmètre : <b>{REGION_LABELS[scope]}</b></p></div>""",
             unsafe_allow_html=True)
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["Vue d'ensemble", "Comparaison régionale", "Évolution trimestrielle",
-                                        "Fiche indicateur", "Données"])
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["Vue d'ensemble", "Comparaison régionale", "Carte", "Évolution trimestrielle",
+                                              "Fiche indicateur", "Données"])
 
 # ============ 1. VUE D'ENSEMBLE ============
 with tab1:
@@ -584,8 +624,56 @@ with tab2:
         else:
             st.info("Ce niveau de lecture n'existe pas dans les feuilles régionales.")
 
-# ============ 3. ÉVOLUTION TRIMESTRIELLE ============
+# ============ 3. CARTE ============
 with tab3:
+    st.markdown("Localisation des 5 régions du projet. La couleur et la taille du point indiquent le taux "
+                "de réalisation de l'indicateur choisi ; les détails apparaissent au survol.")
+    cand = []
+    for gm in [r for r in RECS if r["sheet"] == "Global" and r["level"] == 0]:
+        if not show_hidden and gm["hidden"]:
+            continue
+        if any(r["main_key"] == gm["main_key"] and r["level"] == 0 for s in REGIONS for r in by_sheet[s]):
+            cand.append(gm["main_key"])
+    if not cand:
+        st.info("Aucun indicateur n'est ventilé par région.")
+    else:
+        mk = pick_box("Indicateur", cand, main_label, "map_pick")
+        gm = ref_mains[mk]
+        idx = {(r["sheet"], r["key"]): r for r in VIS}
+        lats, lons, sizes, colors, texts, names = [], [], [], [], [], []
+        for s in REGIONS:
+            r = idx.get((s, gm["key"]))
+            lat, lon = REGION_COORDS[s]
+            t = r["taux"] if r else None
+            lats.append(lat); lons.append(lon); names.append(REGION_LABELS[s])
+            colors.append((status(t)[1]) if r else C_NONE)
+            sizes.append(24 + (min(t, 1.5) * 30 if t is not None else 0))
+            if r:
+                texts.append(f"<b>{REGION_LABELS[s]}</b><br>Atteint : {fmt_v(r, r['atteint'])}<br>"
+                             f"Cible : {fmt_v(r, r['cible'])}<br>Taux : {fmt_pct(r['taux'])}")
+            else:
+                texts.append(f"<b>{REGION_LABELS[s]}</b><br>Non renseigné")
+        fig = go.Figure(go.Scattergeo(
+            lat=lats, lon=lons, mode="markers+text", text=names, textposition="top center",
+            textfont=dict(size=13, color="#333", family="Public Sans, sans-serif"),
+            marker=dict(size=sizes, color=colors, opacity=0.9, line=dict(width=1, color="white")),
+            hovertext=texts, hoverinfo="text"))
+        fig.update_geos(
+            scope="africa", lataxis_range=[11.8, 16.8], lonaxis_range=[-17.9, -11.2],
+            showcountries=True, countrycolor="#B9C2CC", showsubunits=True,
+            landcolor="#F2F1EC", showocean=True, oceancolor="#DCE8F0",
+            showlakes=False, coastlinecolor="#B9C2CC", framecolor="#D8D8D2", resolution=50)
+        fig.update_layout(margin=dict(l=0, r=0, t=10, b=0), height=520, showlegend=False)
+        st.plotly_chart(fig, width="stretch", config={"displaylogo": False, "scrollZoom": True})
+        st.caption("Fond simplifié avec pays limitrophes pour repère géographique. "
+                   "Positions approximatives des chefs-lieux de région.")
+        st.markdown(f'<div class="yjc-legend"><span style="--c:{C_OK}">Cible atteinte</span>'
+                    f'<span style="--c:{C_MID}">En progression</span>'
+                    f'<span style="--c:{C_LOW}">À renforcer</span>'
+                    f'<span style="--c:{C_NONE}">Sans donnée</span></div>', unsafe_allow_html=True)
+
+# ============ 4. ÉVOLUTION TRIMESTRIELLE ============
+with tab4:
     def has_q(r):
         return any((q["atteint"] or 0) != 0 for q in r["quarters"])
     q_recs = [r for r in by_sheet[scope] if has_q(r)]
@@ -632,8 +720,8 @@ with tab3:
                                         "Taux": fmt_pct(a["atteint"] / a["cible"]) if a["cible"] and a["atteint"] is not None else "n.d."}
                                        for a in yrs]), hide_index=True, width="stretch")
 
-# ============ 4. FICHE INDICATEUR ============
-with tab4:
+# ============ 5. FICHE INDICATEUR ============
+with tab5:
     all_mk = [m["main_key"] for m in mains]
     if not all_mk:
         st.info("Aucun indicateur pour ce périmètre.")
@@ -649,6 +737,18 @@ with tab4:
         k4.markdown(f"<div style='padding-top:1.6rem;font-weight:600;color:{col}'>{lab}</div>", unsafe_allow_html=True)
         if m["obs"]:
             st.markdown(f"**Observations :** {html.escape(m['obs'])}")
+        d = match_definition(m["label"], DEFS)
+        if d:
+            with st.expander("Définition et méthodologie de collecte", expanded=True):
+                if d["definition"]:
+                    st.markdown(d["definition"])
+                meta_cols = st.columns(3)
+                if d["source"]:
+                    meta_cols[0].markdown(f"**Source des données**\n\n{d['source']}")
+                if d["outil"]:
+                    meta_cols[1].markdown(f"**Outil de collecte**\n\n{d['outil']}")
+                if d["frequence"]:
+                    meta_cols[2].markdown(f"**Fréquence de collecte**\n\n{d['frequence']}")
         lines = [r for r in by_sheet[scope] if r["main_key"] == mk and r["level"] > 0]
         if lines:
             st.markdown("**Désagrégations**")
@@ -676,8 +776,8 @@ with tab4:
             else:
                 st.caption("Indicateur suivi uniquement au niveau du projet (pas de ventilation régionale).")
 
-# ============ 5. DONNÉES ============
-with tab5:
+# ============ 6. DONNÉES ============
+with tab6:
     df = pd.DataFrame([{"Périmètre": REGION_LABELS[r["sheet"]], "N°": r["num"],
                         "Indicateur principal": r["main"], "Sous-groupe": r["group"], "Libellé": r["label"],
                         "Niveau": r["level"], "Cible": r["cible"], "Atteint": r["atteint"],
