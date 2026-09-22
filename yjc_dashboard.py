@@ -1,6 +1,8 @@
 # Tableau de bord YJC (Yaakaar Jeunesse Citoyennete) - Consortium Jeunesse Senegal
 # Lit en direct le Google Sheet "Dashboard YJC-Deploye" : feuille Global + 5 feuilles regionales
 # + feuille "Fiche des inicateurs" (definitions). Lignes masquees exclues par defaut.
+# Indicateurs en pourcentage : on affiche la proportion atteinte ; quand un indicateur existe
+# en "Nombre" et en "Proportion/Pourcentage", seule la version en pourcentage est conservee.
 
 import re
 import unicodedata
@@ -138,6 +140,31 @@ def parse_sheet(sheet, grid, hidden_rows):
     return recs
 
 
+PCT_PREFIX = re.compile(r"^(proportion|pourcentage|%|taux)\s*(de la |de l'|des |du |de |d')?")
+CNT_PREFIX = re.compile(r"^(nombre|nbre)\s*(de la |de l'|des |du |de |d')?")
+
+
+def _stem(label, rx):
+    n = norm(label)
+    m = rx.match(n)
+    return n[m.end():].strip() if m else None
+
+
+def drop_count_twins(recs):
+    """Quand un indicateur existe en 'Nombre de X' et en 'Proportion/Pourcentage/% de X',
+    on ne garde que la version en pourcentage (et on retire les désagrégations du 'Nombre')."""
+    from difflib import SequenceMatcher
+    drop = set()
+    for s in {r["sheet"] for r in recs}:
+        mains = [r for r in recs if r["sheet"] == s and r["level"] == 0]
+        pct_stems = [st for st in (_stem(r["label"], PCT_PREFIX) for r in mains) if st]
+        for r in mains:
+            cs = _stem(r["label"], CNT_PREFIX)
+            if cs and any(SequenceMatcher(None, cs, ps).ratio() >= 0.85 for ps in pct_stems):
+                drop.add((s, r["main"], r["occ"]))
+    return [r for r in recs if (r["sheet"], r["main"], r["occ"]) not in drop]
+
+
 def _assign_keys(recs):
     seen = {}
     for rec in recs:
@@ -176,6 +203,7 @@ def parse_all(grids, hidden):
                     best, score = cand, sc
             cache[m] = best if score >= 0.8 else m
         rec["canon"] = cache[m]
+    out = drop_count_twins(out)
     _assign_keys(out)
     order = {}
     for rec in out:
@@ -291,7 +319,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-SPREADSHEET_ID = "1i-CBHtOvvTIZPpaEMelbumbV7il-ha4utJMAmq_FvvA"
+SPREADSHEET_ID = "1c56hR0fmwXzvgzC3vQdaWxmSEJugsJqvVf7r-iErIt8"  # Dashboard YJC-Déployé
 C_OK, C_MID, C_LOW, C_NONE = "#1F7A5C", "#C98A1B", "#B23A48", "#8A94A6"
 C_BLUE, C_TARGET = "#2F5D8A", "#9FB3C8"
 DAKAR_TZ = timezone(timedelta(hours=0))
@@ -398,6 +426,21 @@ def fmt_pct(t):
     if p >= 100 or abs(p - round(p)) < 0.05:
         return f"{fmt_n(float(round(p)))}\u202f%"
     return f"{fmt_n(p, 1)}\u202f%"
+
+
+def rate_txt(r):
+    """Pour un indicateur en pourcentage, on affiche la proportion atteinte elle-même,
+    pas le rapport atteint / cible."""
+    if r is None:
+        return "n.d."
+    return fmt_v(r, r["atteint"]) if r["pct"] else fmt_pct(r["taux"])
+
+
+def gap_txt(r):
+    if r["atteint"] is None or r["cible"] is None:
+        return "n.d."
+    d = (r["atteint"] - r["cible"]) * 100
+    return f"{'+' if d >= 0 else ''}{fmt_n(d, 1)}\u202fpts"
 
 
 def status(t):
@@ -523,7 +566,7 @@ with tab1:
           <div class="top"><span class="num">Indicateur {r['num']}</span><span class="badge">{lab}</span></div>
           <div class="lab" title="{html.escape(r['label'])}">{html.escape(r['label'])}</div>
           <div class="vals"><span><span class="att">{fmt_v(r, r['atteint'])}</span>
-            <span class="cib"> / {fmt_v(r, r['cible'])}</span></span><span class="pct">{fmt_pct(r['taux'])}</span></div>
+            <span class="cib"> / {fmt_v(r, r['cible'])}</span></span><span class="pct">{gap_txt(r) if r['pct'] else fmt_pct(r['taux'])}</span></div>
           <div class="yjc-bar"><div class="fill" style="width:{fill:.1f}%"></div>
             <div class="tick" style="left:calc({tick:.1f}% - 1px)"></div></div>
         </div>""")
@@ -546,7 +589,8 @@ with tab1:
                      "Niveau": "Indicateur" if r["level"] == 0 else ("Sous-groupe" if r["kind"] == "group" else "Désagrégation"),
                      "Libellé": ("" if r["level"] == 0 else ("    " if r["level"] == 1 else "        ")) + r["label"],
                      "Cible": fmt_v(r, r["cible"]), "Atteint": fmt_v(r, r["atteint"]),
-                     "Taux": r["taux"] * 100 if r["taux"] is not None else None,
+                     "Taux": ((r["atteint"] * 100 if r["atteint"] is not None else None) if r["pct"]
+                              else (r["taux"] * 100 if r["taux"] is not None else None)),
                      "Statut": status(r["taux"])[0]})
     if rows:
         st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch",
@@ -578,7 +622,7 @@ with tab2:
                 r = idx.get((s, gm["key"]))
                 t = r["taux"] if r else None
                 zr.append(None if t is None else (2 if t >= 1 else (1 if t >= 0.5 else 0)))
-                tr.append("" if t is None else fmt_pct(t))
+                tr.append("" if t is None else rate_txt(r))
             if all(v is None for v in zr):
                 continue
             ylab.append(f"{gm['num']}. {short(gm['label'], 62)}")
@@ -596,7 +640,7 @@ with tab2:
         fig.update_xaxes(side="top")
         plot(fig, h=max(420, 32 * len(ylab) + 80))
         if no_target:
-            st.caption("Sans cible régionale renseignée, donc absents de la carte : "
+            st.caption("Sans cible régionale renseignée, donc absents de ce tableau : "
                        + " ; ".join(f"{m['num']}. {short(m['label'], 60)}" for m in no_target))
 
         st.markdown("#### Détail d'un indicateur par région")
@@ -619,14 +663,14 @@ with tab2:
                         marker_color=C_TARGET, hovertemplate="%{x}<br>Cible : %{y:,.0f}<extra></extra>")
             fig.add_bar(x=[d["Région"] for d in data], y=[d["Atteint"] for d in data], name="Atteint",
                         marker_color=[status(d["Taux"])[1] for d in data],
-                        text=[fmt_pct(d["Taux"]) for d in data], textposition="outside",
+                        text=[rate_txt(d["rec"]) for d in data], textposition="outside",
                         hovertemplate="%{x}<br>Atteint : %{y:,.0f}<extra></extra>")
             fig.update_layout(barmode="group", bargap=0.3, separators=", ")
             if ref["pct"]:
                 fig.update_yaxes(tickformat=".0%")
             plot(fig, h=420)
             st.dataframe(pd.DataFrame([{"Région": d["Région"], "Cible": fmt_v(d["rec"], d["Cible"]),
-                                        "Atteint": fmt_v(d["rec"], d["Atteint"]), "Taux": fmt_pct(d["Taux"]),
+                                        "Atteint": fmt_v(d["rec"], d["Atteint"]), "Taux": rate_txt(d["rec"]),
                                         "Statut": status(d["Taux"])[0]} for d in data]),
                          hide_index=True, width="stretch")
         else:
@@ -695,7 +739,7 @@ with tab3:
                 t = r["taux"] if r else None
                 colr = status(t)[1] if r else C_NONE
                 hov = (f"<b>{f['id']}</b><br>Atteint : {fmt_v(r, r['atteint'])}<br>Cible : {fmt_v(r, r['cible'])}"
-                       f"<br>Taux : {fmt_pct(t)}<br>{status(t)[0]}") if r else f"<b>{f['id']}</b><br>Non renseigné"
+                       + ("" if r["pct"] else f"<br>Taux : {fmt_pct(t)}") + f"<br>{status(t)[0]}") if r else f"<b>{f['id']}</b><br>Non renseigné"
                 area(colr, "#FFFFFF", 2.2, f["geometry"], hov)
         for rv in GEO["rivers"]:
             xs, ys = lines_xy(rv["geometry"])
@@ -711,7 +755,7 @@ with tab3:
             r = idx.get((s, gm["key"]))
             lon, lat = (-17.75, 14.95) if name == "Dakar" else cen[name]
             px_.append(lon); py_.append(lat)
-            pt.append(f"<b>{name}</b><br>{fmt_pct(r['taux']) if r else 'n.d.'}")
+            pt.append(f"<b>{name}</b><br>{rate_txt(r) if r else 'n.d.'}")
         fig.add_trace(go.Scatter(x=px_, y=py_, mode="text", text=pt, hoverinfo="skip", showlegend=False,
                                  textfont=dict(size=13, color="#FFFFFF")))
         fig.data[-1].textfont.color = ["#1B2A41" if n == "Dakar" else "#FFFFFF" for n in proj]
@@ -803,7 +847,10 @@ with tab5:
         k1, k2, k3, k4 = st.columns(4)
         k1.metric("Valeur atteinte", fmt_v(m, m["atteint"]))
         k2.metric("Cible", fmt_v(m, m["cible"]))
-        k3.metric("Taux de réalisation", fmt_pct(m["taux"]))
+        if m["pct"]:
+            k3.metric("Écart à la cible", gap_txt(m))
+        else:
+            k3.metric("Taux de réalisation", fmt_pct(m["taux"]))
         k4.markdown(f"<div style='padding-top:1.6rem;font-weight:600;color:{col}'>{lab}</div>", unsafe_allow_html=True)
         if m["obs"]:
             st.markdown(f"**Observations :** {html.escape(m['obs'])}")
@@ -830,7 +877,7 @@ with tab5:
             idx = {(r["sheet"], r["key"]): r for r in VIS}
             reg_rows = [{"Région": REGION_LABELS[s], "Cible": fmt_v(m, idx[(s, m["key"])]["cible"]),
                          "Atteint": fmt_v(m, idx[(s, m["key"])]["atteint"]),
-                         "Taux": fmt_pct(idx[(s, m["key"])]["taux"])}
+                         "Taux": rate_txt(idx[(s, m["key"])])}
                         for s in REGIONS if (s, m["key"]) in idx]
             if reg_rows:
                 st.markdown("**Répartition régionale**")
@@ -843,7 +890,8 @@ with tab6:
     df = pd.DataFrame([{"Périmètre": REGION_LABELS[r["sheet"]], "N°": r["num"],
                         "Indicateur principal": r["main"], "Sous-groupe": r["group"], "Libellé": r["label"],
                         "Niveau": r["level"], "Cible": r["cible"], "Atteint": r["atteint"],
-                        "Taux (%)": round(r["taux"] * 100, 1) if r["taux"] is not None else None,
+                        "Taux ou proportion atteinte (%)": (round(r["atteint"] * 100, 1) if r["pct"] and r["atteint"] is not None
+                                                            else (round(r["taux"] * 100, 1) if r["taux"] is not None else None)),
                         "Statut": status(r["taux"])[0], "Masqué dans le Sheet": r["hidden"],
                         "Ligne du Sheet": r["row"], "Observations": r["obs"]} for r in VIS])
     st.markdown(f"{len(df)} lignes lues sur les 6 feuilles (Global et 5 régions).")
